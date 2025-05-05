@@ -64,7 +64,7 @@ CREATE TABLE staff
     first_name VARCHAR(25) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     email VARCHAR(50) NOT NULL UNIQUE,
-    staff_role ENUM('nurse', 'doctor', 'admin') NOT NULL,
+    staff_role ENUM('nurse', 'doctor', 'receptionist', 'admin') NOT NULL,
     clinic_id INT NOT NULL,
     created_at DATETIME NOT NULL DEFAULT NOW(),
     updated_at DATETIME NOT NULL DEFAULT NOW(),
@@ -257,11 +257,9 @@ CREATE TABLE invoices
 -- ==================================================================================================================================
 
 -- Creates the Recent Visits View
-DROP VIEW IF EXISTS recent_visits;
-CREATE VIEW recent_visits AS
-	SELECT vr.record_id, CONCAT(p.first_name, " ", p.last_name) AS patient_name,
-		   vr.visit_date, c.clinic_name, r.room_type, s.job_title, 
-           CONCAT(s.first_name, " ", s.last_name) AS staff_name,
+CREATE OR REPLACE VIEW recent_visits AS
+	SELECT vr.record_id, p.first_name, p.middle_init, p.last_name, vr.visit_date, 
+		   c.clinic_name, r.room_type, s.staff_role, s.first_name AS staff_fname, s.last_name AS staff_lname, 
            vr.diagnosis, t.treatment_name, m.med_name AS prescription_name
 	FROM visit_records vr JOIN patients p 
 		   ON vr.patient_id = p.patient_id
@@ -282,8 +280,7 @@ CREATE VIEW recent_visits AS
 	ORDER BY vr.visit_date DESC;
 
 -- Creates the Unpaid Invoices View
-DROP VIEW IF EXISTS unpaid_invoices;
-CREATE VIEW unpaid_invoices AS
+CREATE OR REPLACE VIEW unpaid_invoices AS
 	SELECT i.invoice_id, CONCAT(p.first_name, " ", p.last_name) AS patient_name,
 		   i.total_amount, i.issue_date
 	FROM invoices i JOIN visit_records vr 
@@ -293,11 +290,10 @@ CREATE VIEW unpaid_invoices AS
 	WHERE i.paid = FALSE;
 
 -- Creates the Staff Workload View (Read-Only)
-DROP VIEW IF EXISTS staff_workload;
-CREATE VIEW staff_workload AS
+CREATE OR REPLACE VIEW staff_workload AS
 SELECT s.staff_id,
        CONCAT(s.first_name, ' ', s.last_name) AS staff_name,
-       s.job_title,
+       s.staff_role,
        COUNT(vr.record_id) AS patients_seen
 FROM staff s LEFT JOIN visit_records vr 
 	 ON s.staff_id = vr.staff_id
@@ -309,9 +305,9 @@ GROUP BY s.staff_id;
 -- ==================================================================================================================================
 
 -- Procedure to add a new patient with an emergency contact
-DROP PROCEDURE IF EXISTS add_patient_with_contact;
+DROP PROCEDURE IF EXISTS addPatientWithContact;
 DELIMITER //
-CREATE PROCEDURE add_patient_with_contact(
+CREATE PROCEDURE addPatientWithContact(
 	IN patient_fname VARCHAR(25), IN patient_mi CHAR(1), IN patient_lname VARCHAR(25), IN patient_phone VARCHAR(15), IN patient_email VARCHAR(50),
     IN contact_fname VARCHAR(25), IN contact_lname VARCHAR(25), IN contact_phone VARCHAR(15), IN contact_email VARCHAR(50)
 )
@@ -328,14 +324,23 @@ BEGIN
 END //
 DELIMITER ;
 
--- Procedure to generate a new visit invoice
-DROP PROCEDURE IF EXISTS generate_invoice;
+DROP PROCEDURE IF EXISTS getDoctorVisits;
 DELIMITER //
-CREATE PROCEDURE generate_invoice(IN p_record_id INT)
+CREATE PROCEDURE getDoctorVisits(IN first_name VARCHAR(25), IN last_name VARCHAR(50))
+BEGIN
+	SELECT * FROM recent_visits
+    WHERE staff_name = CONCAT(first_name, " ", last_name);
+END //
+DELIMITER ;
+
+-- Procedure to generate a new visit invoice
+DROP PROCEDURE IF EXISTS generateInvoice;
+DELIMITER //
+CREATE PROCEDURE generateInvoice(IN p_record_id INT)
 BEGIN
 	DECLARE total_cost DECIMAL(10, 2);
     
-    SELECT t.cost + IFNULL(SUM(m.cost * rp.quantity), 0) INTO total_cost
+    SELECT r.cost + IFNULL(t.cost, 0) + IFNULL(SUM(m.cost * rp.quantity), 0) INTO total_cost
 	FROM visit_records vr JOIN record_treatments rt
 		 ON vr.record_id = rt.record_id
 						  JOIN treatments t
@@ -344,6 +349,8 @@ BEGIN
 		 ON vr.record_id = rp.record_id
 						  JOIN medications m
 		 ON rp.med_id = m.med_id
+						  JOIN rooms r 
+		 ON vr.room_id = r.room_id
 	WHERE vr.record_id = p_record_id;
     
     INSERT INTO invoices (record_id, total_amount)
@@ -352,9 +359,9 @@ END //
 DELIMITER ;
 
 -- Procedure to add a new prescription to the record_prescriptions table
-DROP PROCEDURE IF EXISTS add_prescription;
+DROP PROCEDURE IF EXISTS addPrescription;
 DELIMITER //
-CREATE PROCEDURE add_prescription(
+CREATE PROCEDURE addPrescription(
 	IN p_record_id INT,
     IN p_med_id INT,
     IN p_quantity INT
@@ -379,6 +386,37 @@ BEGIN
 	END IF;
 END //
 DELIMITER ;
+
+-- Procedure to add a new visit and update the proper tables
+DROP PROCEDURE IF EXISTS addNewVisit;
+DELIMITER //
+CREATE PROCEDURE addNewVisit(
+	IN in_patient_id INT, IN in_clinic_id INT, IN in_room_id INT, IN in_staff_id INT,
+    IN in_reason_for_visit VARCHAR(255), IN in_symptoms VARCHAR(255), IN in_diagnosis VARCHAR(255), 
+    IN in_treatment_id INT, IN in_med_id INT, IN in_med_quantity INT
+)
+BEGIN
+	DECLARE new_record_id INT;
+    
+	INSERT INTO visit_records (patient_id, clinic_id, room_id, staff_id, reason_for_visit, 
+							   symptoms, diagnosis, medicine_prescribed)
+	VALUES (in_patient_id, in_clinic_id, in_room_id, in_staff_id, in_reason_for_visit,
+			in_symptoms, in_diagnosis, IF(in_med_id IS NOT NULL, TRUE, FALSE));
+	
+    SET new_record_id = LAST_INSERT_ID();
+    
+    IF in_treatment_id IS NOT NULL THEN
+		INSERT INTO record_treatments (record_id, treatment_id)
+        VALUES (new_record_id, in_treatment_id);
+	END IF;
+    
+    IF in_med_id IS NOT NULL AND in_med_quantity IS NOT NULL THEN
+		CALL addPrescription(new_record_id, in_med_id, in_med_quantity);
+	END IF;
+    
+    CALL generateInvoice(new_record_id);
+END //
+DELIMITER ;
 -- ==================================================================================================================================
 
 
@@ -386,28 +424,31 @@ DELIMITER ;
 -- ==================================================================================================================================
 
 -- DROP USERS FIRST
-DROP USER IF EXISTS 'app_user'@'localhost';
-DROP USER IF EXISTS 'read_only_user'@'localhost';
+DROP USER IF EXISTS 'doctor_user'@'localhost';
+DROP USER IF EXISTS 'nurse_user'@'localhost';
+DROP USER IF EXISTS 'receptionist_user'@'localhost';
 DROP USER IF EXISTS 'admin_user'@'localhost';
-DROP USER IF EXISTS 'auditor_user'@'localhost';
 
 -- CREATE USERS
-CREATE USER 'app_user'@'localhost' IDENTIFIED BY 'StrongAppPass!';
-CREATE USER 'read_only_user'@'localhost' IDENTIFIED BY 'ReadOnlyPass!';
+CREATE USER 'doctor_user'@'localhost' IDENTIFIED BY 'StrongAppPass!';
+CREATE USER 'nurse_user'@'localhost' IDENTIFIED BY 'ReadOnlyPass!';
+CREATE USER 'receptionist_user'@'localhost' IDENTIFIED BY 'AuditReadPass!';
 CREATE USER 'admin_user'@'localhost' IDENTIFIED BY 'AdminPass!';
-CREATE USER 'auditor_user'@'localhost' IDENTIFIED BY 'AuditReadPass!';
 
 -- GRANT PRIVILEGES
 
--- App user can modify data but not the schema
-GRANT SELECT, INSERT, UPDATE, DELETE ON caresync.* TO 'app_user'@'localhost';
-
--- Read-only user for analytics
-GRANT SELECT ON caresync.* TO 'read_only_user'@'localhost';
-
--- Admin has full access to manage the schema and data
+-- Admin has full access
 GRANT ALL PRIVILEGES ON caresync.* TO 'admin_user'@'localhost';
 
--- Auditor can only view patient logs (and maybe invoice info)
-GRANT SELECT ON caresync.patient_log TO 'auditor_user'@'localhost';
-GRANT SELECT ON caresync.invoices TO 'auditor_user'@'localhost';
+-- Doctor can access their visits and can view patients
+GRANT EXECUTE ON PROCEDURE getDoctorVisits TO 'doctor_user'@'localhost';
+GRANT SELECT ON caresync.patients TO 'doctor_user'@'localhost';
+GRANT SELECT, INSERT ON caresync.treatments TO 'doctor_user'@'localhost';
+GRANT SELECT ON caresync.medications TO 'doctor_user'@'localhost';
+
+-- Read-only user for analytics
+GRANT EXECUTE ON PROCEDURE addPatientWithContact TO 'nurse_user'@'localhost';
+
+GRANT EXECUTE ON PROCEDURE addNewVisit TO 'receptionist_user'@'localhost';
+
+FLUSH PRIVILEGES;
