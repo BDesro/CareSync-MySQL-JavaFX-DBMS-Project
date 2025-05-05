@@ -138,7 +138,7 @@ BEGIN
 END //
 DELIMITER ;
 
--- Trigger to update the patient log after changes are made
+-- Trigger to update the patient log after a deletion
 DROP TRIGGER IF EXISTS log_patient_delete;
 DELIMITER //
 CREATE TRIGGER log_patient_delete
@@ -258,26 +258,36 @@ CREATE TABLE invoices
 
 -- Creates the Recent Visits View
 CREATE OR REPLACE VIEW recent_visits AS
-	SELECT vr.record_id, p.first_name, p.middle_init, p.last_name, vr.visit_date, 
-		   c.clinic_name, r.room_type, s.staff_role, s.first_name AS staff_fname, s.last_name AS staff_lname, 
-           vr.diagnosis, t.treatment_name, m.med_name AS prescription_name
-	FROM visit_records vr JOIN patients p 
-		   ON vr.patient_id = p.patient_id
-						  JOIN clinics c 
-		   ON vr.clinic_id = c.clinic_id
-						  JOIN rooms r 
-		   ON vr.room_id = r.room_id
-						  JOIN staff s
-		   ON vr.staff_id = s.staff_id
-						  JOIN record_treatments rt
-		   ON vr.record_id = rt.record_id
-						  JOIN treatments t 
-		   ON rt.treatment_id = t.treatment_id
-						  JOIN record_prescriptions rp
-		   ON vr.record_id = rp.record_id
-						  JOIN medications m
-		   ON rp.med_id = m.med_id
-	ORDER BY vr.visit_date DESC;
+SELECT 
+    vr.record_id,
+    p.first_name AS patient_first_name,
+    p.middle_init AS patient_middle_init,
+    p.last_name AS patient_last_name,
+    vr.visit_date, c.clinic_name, r.room_type, s.staff_role,
+    s.first_name AS staff_first_name,
+    s.last_name AS staff_last_name,
+    vr.diagnosis,
+
+    -- Combine treatments and prescriptions
+    GROUP_CONCAT(DISTINCT t.treatment_name ORDER BY t.treatment_name SEPARATOR ', ') AS treatments,
+    GROUP_CONCAT(DISTINCT m.med_name ORDER BY m.med_name SEPARATOR ', ') AS prescriptions
+
+FROM visit_records vr
+
+JOIN patients p ON vr.patient_id = p.patient_id
+JOIN clinics c ON vr.clinic_id = c.clinic_id
+JOIN rooms r ON vr.room_id = r.room_id
+JOIN staff s ON vr.staff_id = s.staff_id
+
+LEFT JOIN record_treatments rt ON vr.record_id = rt.record_id
+LEFT JOIN treatments t ON rt.treatment_id = t.treatment_id
+
+LEFT JOIN record_prescriptions rp ON vr.record_id = rp.record_id
+LEFT JOIN medications m ON rp.med_id = m.med_id
+
+GROUP BY vr.record_id, p.first_name, p.middle_init, p.last_name, vr.visit_date,
+         c.clinic_name, r.room_type, s.staff_role, s.first_name, s.last_name, vr.diagnosis
+ORDER BY vr.visit_date DESC;
 
 -- Creates the Unpaid Invoices View
 CREATE OR REPLACE VIEW unpaid_invoices AS
@@ -340,7 +350,14 @@ CREATE PROCEDURE generateInvoice(IN p_record_id INT)
 BEGIN
 	DECLARE total_cost DECIMAL(10, 2);
     
-    SELECT r.cost + IFNULL(t.cost, 0) + IFNULL(SUM(m.cost * rp.quantity), 0) INTO total_cost
+    SELECT r.room_cost + 
+		   (SELECT IFNULL(SUM(t.cost), 0)
+			FROM record_treatments rt JOIN treatments t ON rt.treatment_id = t.treatment_id
+			WHERE rt.record_id = p_record_id) +
+		   (SELECT IFNULL(SUM(m.cost * rp.quantity), 0)
+			FROM record_prescriptions rp JOIN medications m ON rp.med_id = m.med_id
+			WHERE rp.record_id = p_record_id)
+		   INTO total_cost
 	FROM visit_records vr JOIN record_treatments rt
 		 ON vr.record_id = rt.record_id
 						  JOIN treatments t
