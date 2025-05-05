@@ -63,7 +63,6 @@ CREATE TABLE staff
 	staff_id INT PRIMARY KEY AUTO_INCREMENT,
     first_name VARCHAR(25) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
-    email VARCHAR(50) NOT NULL UNIQUE,
     staff_role ENUM('nurse', 'doctor', 'receptionist', 'admin') NOT NULL,
     clinic_id INT NOT NULL,
     created_at DATETIME NOT NULL DEFAULT NOW(),
@@ -72,6 +71,13 @@ CREATE TABLE staff
     CONSTRAINT fk_staff_clinic_id_clinics FOREIGN KEY (clinic_id) REFERENCES clinics (clinic_id)
 		ON UPDATE CASCADE
 ) AUTO_INCREMENT = 1;
+
+CREATE TABLE staff_auth (
+    staff_id INT PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    hashed_password VARCHAR(60) NOT NULL,
+    FOREIGN KEY (staff_id) REFERENCES staff(staff_id)
+);
 
 -- ===========================================
 -- Emergency Contacts Table
@@ -439,33 +445,10 @@ DELIMITER ;
 
 -- DATABASE USERS
 -- ==================================================================================================================================
+DROP USER IF EXISTS 'app_user'@'localhost';
 
--- DROP USERS FIRST
-DROP USER IF EXISTS 'doctor_user'@'localhost';
-DROP USER IF EXISTS 'nurse_user'@'localhost';
-DROP USER IF EXISTS 'receptionist_user'@'localhost';
-DROP USER IF EXISTS 'admin_user'@'localhost';
-
--- CREATE USERS
-CREATE USER 'doctor_user'@'localhost' IDENTIFIED BY 'StrongAppPass!';
-CREATE USER 'nurse_user'@'localhost' IDENTIFIED BY 'ReadOnlyPass!';
-CREATE USER 'receptionist_user'@'localhost' IDENTIFIED BY 'AuditReadPass!';
-CREATE USER 'admin_user'@'localhost' IDENTIFIED BY 'AdminPass!';
-
--- GRANT PRIVILEGES
-
--- Admin has full access
-GRANT ALL PRIVILEGES ON caresync.* TO 'admin_user'@'localhost';
-
--- Doctor can access their visits and can view patients
-GRANT EXECUTE ON PROCEDURE getDoctorVisits TO 'doctor_user'@'localhost';
-GRANT SELECT ON caresync.patients TO 'doctor_user'@'localhost';
-GRANT SELECT, INSERT ON caresync.treatments TO 'doctor_user'@'localhost';
-GRANT SELECT ON caresync.medications TO 'doctor_user'@'localhost';
-
--- Read-only user for analytics
-GRANT EXECUTE ON PROCEDURE addPatientWithContact TO 'nurse_user'@'localhost';
-
-GRANT EXECUTE ON PROCEDURE addNewVisit TO 'receptionist_user'@'localhost';
+CREATE USER 'app_user'@'localhost' IDENTIFIED BY 'safePassword!';
+GRANT SELECT, INSERT, UPDATE ON caresync.* TO 'app_user'@'localhost';
+GRANT EXECUTE ON caresync.* TO 'app_user'@'localhost';
 
 FLUSH PRIVILEGES;
