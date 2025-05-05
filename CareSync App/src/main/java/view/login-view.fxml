@@ -31,7 +31,7 @@
                   <Font size="24.0" />
                </font>
             </Label>
-            <TextField fx:id="usernameField" prefHeight="32.0" prefWidth="589.0" promptText="Email">
+            <TextField fx:id="emailField" prefHeight="32.0" prefWidth="589.0" promptText="Email">
                <font>
                   <Font size="16.0" />
                </font>
