@@ -34,17 +34,17 @@
                   <Insets left="30.0" right="30.0" top="175.0" />
                </VBox.margin>
                <children>
-                  <Button fx:id="patientsButton" mnemonicParsing="false" prefWidth="700.0" text="Patients">
+                  <Button fx:id="patientsButton" mnemonicParsing="false" prefWidth="700.0" style="-fx-background-color: #8282FF;" text="Patients">
                      <font>
                         <Font size="36.0" />
                      </font>
                   </Button>
-                  <Button layoutX="10.0" layoutY="87.0" mnemonicParsing="false" prefWidth="700.0" text="Invoices">
+                  <Button layoutX="10.0" layoutY="87.0" mnemonicParsing="false" prefWidth="700.0" style="-fx-background-color: #8282FF;" text="Invoices">
                      <font>
                         <Font size="36.0" />
                      </font>
                   </Button>
-                  <Button layoutX="10.0" layoutY="204.0" mnemonicParsing="false" prefWidth="700.0" text="Clinic Info">
+                  <Button layoutX="10.0" layoutY="204.0" mnemonicParsing="false" prefWidth="700.0" style="-fx-background-color: #8282FF;" text="Clinic Info">
                      <font>
                         <Font size="36.0" />
                      </font>
