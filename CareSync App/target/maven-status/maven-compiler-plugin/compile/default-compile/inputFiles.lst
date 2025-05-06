@@ -1,6 +1,9 @@
-C:\Users\TIGER\Documents\GitHub\CareSync-MySQL-JavaFX-DBMS-Project\CareSync App\src\main\java\controller\LoginViewController.java
-C:\Users\TIGER\Documents\GitHub\CareSync-MySQL-JavaFX-DBMS-Project\CareSync App\src\main\java\core\MainApplication.java
-C:\Users\TIGER\Documents\GitHub\CareSync-MySQL-JavaFX-DBMS-Project\CareSync App\src\main\java\core\SceneManager.java
-C:\Users\TIGER\Documents\GitHub\CareSync-MySQL-JavaFX-DBMS-Project\CareSync App\src\main\java\Model\Staff.java
-C:\Users\TIGER\Documents\GitHub\CareSync-MySQL-JavaFX-DBMS-Project\CareSync App\src\main\java\util\CareSyncDB.java
-C:\Users\TIGER\Documents\GitHub\CareSync-MySQL-JavaFX-DBMS-Project\CareSync App\src\main\java\core\SceneID.java
+C:\Users\TIGER\OneDrive\Desktop\CareSync-MySQL-JavaFX-DBMS-Project\CareSync App\src\main\java\controller\PatientsViewController.java
+C:\Users\TIGER\OneDrive\Desktop\CareSync-MySQL-JavaFX-DBMS-Project\CareSync App\src\main\java\controller\LoginViewController.java
+C:\Users\TIGER\OneDrive\Desktop\CareSync-MySQL-JavaFX-DBMS-Project\CareSync App\src\main\java\controller\ReceptionistDashboardController.java
+C:\Users\TIGER\OneDrive\Desktop\CareSync-MySQL-JavaFX-DBMS-Project\CareSync App\src\main\java\util\CareSyncDB.java
+C:\Users\TIGER\OneDrive\Desktop\CareSync-MySQL-JavaFX-DBMS-Project\CareSync App\src\main\java\core\SceneManager.java
+C:\Users\TIGER\OneDrive\Desktop\CareSync-MySQL-JavaFX-DBMS-Project\CareSync App\src\main\java\core\SceneID.java
+C:\Users\TIGER\OneDrive\Desktop\CareSync-MySQL-JavaFX-DBMS-Project\CareSync App\src\main\java\util\AppGlobals.java
+C:\Users\TIGER\OneDrive\Desktop\CareSync-MySQL-JavaFX-DBMS-Project\CareSync App\src\main\java\core\MainApplication.java
+C:\Users\TIGER\OneDrive\Desktop\CareSync-MySQL-JavaFX-DBMS-Project\CareSync App\src\main\java\Model\Staff.java

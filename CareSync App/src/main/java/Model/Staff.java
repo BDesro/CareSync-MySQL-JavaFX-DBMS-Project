@@ -7,14 +7,18 @@ public class Staff
     private String lastName;
     private String staffRole;
     private int clinicID;
+    private String email;
+    private String hashedPassword;
 
-    public Staff(int staffID, String fName, String lName, String role, int clinicID)
+    public Staff(int staffID, String fName, String lName, String role, int clinicID, String email, String hashedPassword)
     {
         this.staffID = staffID;
         this.firstName = fName;
         this.lastName = lName;
         this.staffRole = role;
         this.clinicID = clinicID;
+        this.email = email;
+        this.hashedPassword = hashedPassword;
     }
 
     public int getStaffID()
@@ -65,5 +69,19 @@ public class Staff
     public void setClinicID(int clinicID)
     {
         this.clinicID = clinicID;
+    }
+
+    public String getEmail() { return email; }
+
+    public void setEmail(String email)
+    {
+        this.email = email;
+    }
+
+    public String getHashedPassword() { return hashedPassword; }
+
+    public void setHashedPassword(String hashedPassword)
+    {
+        this.hashedPassword = hashedPassword;
     }
 }

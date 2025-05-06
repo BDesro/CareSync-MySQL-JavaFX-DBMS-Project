@@ -2,10 +2,7 @@ package util;
 
 import Model.Staff;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.sql.*;
 
 public class CareSyncDB
 {
@@ -26,14 +23,31 @@ public class CareSyncDB
 
     public static Staff getStaffByEmail(String email)
     {
+        Staff staff = null;
+
         String query = "SELECT * " +
-                       "FROM staff s JOIN staff_auth sa" +
-                       "ON s.staff_id = sa.staff_id" +
+                       "FROM staff s JOIN staff_auth sa " +
+                       "ON s.staff_id = sa.staff_id " +
                        "WHERE sa.email = ?";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(query))
         {
-            return null;
+            stmt.setString(1, email);
+            ResultSet rs = stmt.executeQuery();
+
+            if(rs.next())
+            {
+                int staffID = rs.getInt("staff_id");
+                String fName = rs.getString("first_name");
+                String lName = rs.getString("last_name");
+                String role = rs.getString("staff_role");
+                int clinicID = rs.getInt("clinic_id");
+                String hashedPassword = rs.getString("hashed_password");
+
+                staff = new Staff(staffID, fName, lName, role, clinicID, email, hashedPassword);
+            }
+            rs.close();
+            return staff;
         } catch(SQLException ex){
             System.out.println(ex.getMessage());
             return null;

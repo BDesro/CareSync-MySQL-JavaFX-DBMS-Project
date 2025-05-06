@@ -27,7 +27,17 @@ public enum SceneManager
             switch(id)
             {
                 case LOGIN_SCREEN:
-                    // scene = new Scene()
+                    scene = new Scene(loadFXML("/view/login-view.fxml"), 600, 500);
+                    stage.setTitle("Login Page");
+                    break;
+                case RECEPTIONIST_DASH:
+                    scene = new Scene(loadFXML("/view/receptionist-dashboard-view.fxml"), 700, 720);
+                    stage.setTitle("Receptionist Dashboard");
+                    break;
+                case PATIENTS_SCREEN:
+                    scene = new Scene(loadFXML("/view/patients-view.fxml"), resX, resY);
+                    stage.setTitle("Patients");
+                    break;
             }
 
             if(scene != null)
@@ -41,7 +51,7 @@ public enum SceneManager
         }
     }
 
-    private Parent loadFXML(String path) throws Exception
+    private static Parent loadFXML(String path) throws Exception
     {
         FXMLLoader loader = new FXMLLoader(SceneManager.class.getResource(path));
         return loader.load();

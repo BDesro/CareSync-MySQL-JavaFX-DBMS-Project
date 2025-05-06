@@ -102,6 +102,7 @@ CREATE TABLE patients
     first_name VARCHAR(25) NOT NULL,
     middle_init CHAR(1) NOT NULL,
     last_name VARCHAR(25) NOT NULL,
+    gender CHAR(1) NOT NULL,
     phone VARCHAR(15) NOT NULL,
     email VARCHAR(50) NOT NULL,
     contact_id INT NOT NULL,
@@ -324,8 +325,8 @@ GROUP BY s.staff_id;
 DROP PROCEDURE IF EXISTS addPatientWithContact;
 DELIMITER //
 CREATE PROCEDURE addPatientWithContact(
-	IN patient_fname VARCHAR(25), IN patient_mi CHAR(1), IN patient_lname VARCHAR(25), IN patient_phone VARCHAR(15), IN patient_email VARCHAR(50),
-    IN contact_fname VARCHAR(25), IN contact_lname VARCHAR(25), IN contact_phone VARCHAR(15), IN contact_email VARCHAR(50)
+	IN patient_fname VARCHAR(25), IN patient_mi CHAR(1), IN patient_lname VARCHAR(25), IN patient_gender CHAR(1), IN patient_phone VARCHAR(15), 
+    IN patient_email VARCHAR(50), IN contact_fname VARCHAR(25), IN contact_lname VARCHAR(25), IN contact_phone VARCHAR(15), IN contact_email VARCHAR(50)
 )
 BEGIN
 	DECLARE new_contact_id INT;
@@ -335,8 +336,8 @@ BEGIN
     
     SET new_contact_id = LAST_INSERT_ID();
     
-    INSERT INTO patients (first_name, middle_init, last_name, phone, email, contact_id)
-    VALUES (patient_fname, patient_mi, patient_lname, patient_phone, patient_email, new_contact_id);
+    INSERT INTO patients (first_name, middle_init, last_name, gender, phone, email, contact_id)
+    VALUES (patient_fname, patient_mi, patient_lname, patient_gender, patient_phone, patient_email, new_contact_id);
 END //
 DELIMITER ;
 
