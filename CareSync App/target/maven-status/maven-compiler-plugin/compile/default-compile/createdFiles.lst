@@ -7,4 +7,6 @@ Model\Staff.class
 util\CareSyncDB.class
 core\SceneID.class
 controller\LoginViewController.class
+controller\VisitsViewController.class
+Model\Patient.class
 core\MainApplication.class

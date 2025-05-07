@@ -38,6 +38,10 @@ public enum SceneManager
                     scene = new Scene(loadFXML("/view/patients-view.fxml"), resX, resY);
                     stage.setTitle("Patients");
                     break;
+                case VISITS_SCREEN:
+                    scene = new Scene(loadFXML("/view/visits-view.fxml"), resX, resY);
+                    stage.setTitle("Visits");
+                    break;
             }
 
             if(scene != null)

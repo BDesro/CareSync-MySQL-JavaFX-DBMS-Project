@@ -1,27 +1,36 @@
 package Model;
 
+import java.time.LocalDate;
+
 public class Patient
 {
     private int patientID;
     private String firstName;
     private char middleInitial;
     private String lastName;
+    private LocalDate dateOfBirth;
     private char gender;
     private String phoneNumber;
     private String email;
     private int contactID;
 
-    public Patient(int patientID, String firstName, char middleInitial, String lastName, char gender,
-                   String phoneNumber, String email, int contactID)
+    public Patient(int patientID, String firstName, char middleInitial, String lastName, LocalDate dob,
+                   char gender, String phoneNumber, String email, int contactID)
     {
         this.patientID = patientID;
         this.firstName = firstName;
         this.middleInitial = middleInitial;
         this.lastName = lastName;
+        this.dateOfBirth = dob;
         this.gender = gender;
         this.phoneNumber = phoneNumber;
         this.email = email;
         this.contactID = contactID;
+    }
+
+    public String getFormattedName()
+    {
+        return String.format("%s, %s %s.", lastName, firstName, middleInitial);
     }
 
     public int getPatientID()
@@ -62,6 +71,16 @@ public class Patient
     public void setLastName(String lastName)
     {
         this.lastName = lastName;
+    }
+
+    public LocalDate getDateOfBirth()
+    {
+        return dateOfBirth;
+    }
+
+    public void setDateOfBirth(LocalDate dateOfBirth)
+    {
+        this.dateOfBirth = dateOfBirth;
     }
 
     public char getGender()

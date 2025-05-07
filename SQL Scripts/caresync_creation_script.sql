@@ -88,8 +88,8 @@ CREATE TABLE emergency_contacts
 	contact_id INT PRIMARY KEY AUTO_INCREMENT,
     first_name VARCHAR(25) NOT NULL,
     last_name VARCHAR(25) NOT NULL,
-    phone VARCHAR(15) NOT NULL,
-    email VARCHAR(50) NOT NULL
+    phone VARCHAR(15) NOT NULL UNIQUE,
+    email VARCHAR(50) NOT NULL UNIQUE
 ) AUTO_INCREMENT = 1;
 
 -- ===========================================
@@ -102,6 +102,7 @@ CREATE TABLE patients
     first_name VARCHAR(25) NOT NULL,
     middle_init CHAR(1) NOT NULL,
     last_name VARCHAR(25) NOT NULL,
+    date_of_birth DATE NOT NULL,
     gender CHAR(1) NOT NULL,
     phone VARCHAR(15) NOT NULL,
     email VARCHAR(50) NOT NULL,
@@ -112,6 +113,22 @@ CREATE TABLE patients
     CONSTRAINT patients_contact_id_contacts_fk FOREIGN KEY (contact_id) REFERENCES emergency_contacts (contact_id)
 		ON UPDATE CASCADE
 ) AUTO_INCREMENT = 1;
+
+DROP TRIGGER IF EXISTS before_insert_capitalize_patient_fields;
+DELIMITER //
+CREATE TRIGGER before_insert_capitalize_patient_fields
+BEFORE INSERT ON patients
+FOR EACH ROW
+BEGIN
+  SET NEW.first_name = CONCAT(UPPER(LEFT(NEW.first_name, 1)), LOWER(SUBSTRING(NEW.first_name, 2)));
+  SET NEW.last_name = CONCAT(UPPER(LEFT(NEW.last_name, 1)), LOWER(SUBSTRING(NEW.last_name, 2)));
+  
+  SET NEW.middle_init = UPPER(LEFT(NEW.middle_init, 1));
+  
+  SET NEW.gender = UPPER(LEFT(NEW.gender, 1));
+END //
+DELIMITER ;
+
 
 -- Log table to track changes to Patients table
 CREATE TABLE patient_log (
@@ -195,7 +212,8 @@ CREATE TABLE visit_records
     reason_for_visit VARCHAR(255) NOT NULL DEFAULT "None Specified",
     symptoms VARCHAR(255) NOT NULL DEFAULT "None Specified",
     diagnosis VARCHAR(255) NOT NULL DEFAULT "None Specified",
-    medicine_prescribed BOOL NOT NULL,
+    medicine_prescribed BOOL NOT NULL DEFAULT FALSE,
+    is_complete BOOL NOT NULL DEFAULT FALSE,
     created_at DATETIME NOT NULL DEFAULT NOW(),
     updated_at DATETIME NOT NULL DEFAULT NOW(),
     
@@ -270,7 +288,7 @@ SELECT
     p.first_name AS patient_first_name,
     p.middle_init AS patient_middle_init,
     p.last_name AS patient_last_name,
-    vr.visit_date, c.clinic_name, r.room_type, s.staff_role,
+    vr.visit_date, vr.reason_for_visit, c.clinic_name, r.room_type, s.staff_role,
     s.first_name AS staff_first_name,
     s.last_name AS staff_last_name,
     vr.diagnosis,
@@ -292,7 +310,7 @@ LEFT JOIN treatments t ON rt.treatment_id = t.treatment_id
 LEFT JOIN record_prescriptions rp ON vr.record_id = rp.record_id
 LEFT JOIN medications m ON rp.med_id = m.med_id
 
-GROUP BY vr.record_id, p.first_name, p.middle_init, p.last_name, vr.visit_date,
+GROUP BY vr.record_id, p.first_name, p.middle_init, p.last_name, vr.visit_date, vr.reason_for_visit,
          c.clinic_name, r.room_type, s.staff_role, s.first_name, s.last_name, vr.diagnosis
 ORDER BY vr.visit_date DESC;
 
@@ -325,19 +343,36 @@ GROUP BY s.staff_id;
 DROP PROCEDURE IF EXISTS addPatientWithContact;
 DELIMITER //
 CREATE PROCEDURE addPatientWithContact(
-	IN patient_fname VARCHAR(25), IN patient_mi CHAR(1), IN patient_lname VARCHAR(25), IN patient_gender CHAR(1), IN patient_phone VARCHAR(15), 
-    IN patient_email VARCHAR(50), IN contact_fname VARCHAR(25), IN contact_lname VARCHAR(25), IN contact_phone VARCHAR(15), IN contact_email VARCHAR(50)
+	IN patient_fname VARCHAR(25), IN patient_mi CHAR(1), IN patient_lname VARCHAR(25), IN patient_dob DATE, 
+    IN patient_gender CHAR(1), IN patient_phone VARCHAR(15), IN patient_email VARCHAR(50), 
+    
+    IN contact_fname VARCHAR(25), IN contact_lname VARCHAR(25), IN contact_phone VARCHAR(15), IN contact_email VARCHAR(50),
+    
+    OUT new_patient_id INT, OUT new_contact_id INT
 )
 BEGIN
-	DECLARE new_contact_id INT;
+	DECLARE existing_contact_id INT;
     
-	INSERT INTO emergency_contacts (first_name, last_name, phone, email)
-    VALUES (contact_fname, contact_lname, contact_phone, contact_email);
+    SELECT contact_id INTO existing_contact_id
+    FROM emergency_contacts
+    WHERE phone = contact_phone AND email = contact_email;
     
-    SET new_contact_id = LAST_INSERT_ID();
+    IF existing_contact_id IS NULL THEN
+		INSERT INTO emergency_contacts (first_name, last_name, phone, email)
+		VALUES (contact_fname, contact_lname, contact_phone, contact_email);
     
-    INSERT INTO patients (first_name, middle_init, last_name, gender, phone, email, contact_id)
-    VALUES (patient_fname, patient_mi, patient_lname, patient_gender, patient_phone, patient_email, new_contact_id);
+		SET new_contact_id = LAST_INSERT_ID();
+    
+		INSERT INTO patients (first_name, middle_init, last_name, date_of_birth, gender, phone, email, contact_id)
+		VALUES (patient_fname, patient_mi, patient_lname, patient_dob, patient_gender, patient_phone, patient_email, new_contact_id);
+    
+		SET new_patient_id = LAST_INSERT_ID();
+	ELSE
+		INSERT INTO patients (first_name, middle_init, last_name, date_of_birth, gender, phone, email, contact_id)
+		VALUES (patient_fname, patient_mi, patient_lname, patient_dob, patient_gender, patient_phone, patient_email, existing_contact_id);
+    
+		SET new_patient_id = LAST_INSERT_ID();
+	END IF;
 END //
 DELIMITER ;
 
@@ -346,7 +381,7 @@ DELIMITER //
 CREATE PROCEDURE getDoctorVisits(IN first_name VARCHAR(25), IN last_name VARCHAR(50))
 BEGIN
 	SELECT * FROM recent_visits
-    WHERE staff_name = CONCAT(first_name, " ", last_name);
+    WHERE staff_first_name = first_name AND staff_last_name = last_name;
 END //
 DELIMITER ;
 

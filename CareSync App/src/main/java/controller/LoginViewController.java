@@ -8,17 +8,25 @@ import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.event.ActionEvent;
+import javafx.scene.image.ImageView;
 import org.mindrot.jbcrypt.BCrypt;
 import util.AppGlobals;
 import util.CareSyncDB;
 
 public class LoginViewController
 {
+    @FXML private ImageView logo;
     @FXML private TextField emailField;
     @FXML private PasswordField passwordField;
     @FXML private Label messageLabel;
 
     private Staff user = null;
+
+    @FXML
+    public void initialize()
+    {
+        logo.setImage(AppGlobals.CARESYNCLOGO);
+    }
 
     // For testing, all passwords are '1234'
     public void checkLogin(ActionEvent e)
@@ -37,7 +45,7 @@ public class LoginViewController
                     messageLabel.setStyle("-fx-text-fill: green;");
                     messageLabel.setText("Login Successful");
 
-                    switch(user.getStaffRole())
+                    switch(user.getStaffRole().toLowerCase())
                     {
                         case "receptionist":
                             SceneManager.INSTANCE.switchTo(SceneID.RECEPTIONIST_DASH);

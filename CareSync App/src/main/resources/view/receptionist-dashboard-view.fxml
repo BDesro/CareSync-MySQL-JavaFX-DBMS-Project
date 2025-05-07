@@ -3,6 +3,7 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
@@ -12,14 +13,14 @@
    <children>
       <VBox alignment="TOP_CENTER" prefHeight="720.0" prefWidth="1280.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <children>
-            <HBox alignment="CENTER_LEFT" prefHeight="0.0" spacing="20.0" style="-fx-background-color: #4DA6FF;">
+            <HBox alignment="CENTER_LEFT" prefHeight="0.0" spacing="20.0" style="-fx-background-color: #4DA6FF;" VBox.vgrow="ALWAYS">
                <children>
                   <Label fx:id="userLastFirstName" text="Last, First">
                      <font>
                         <Font size="24.0" />
                      </font>
                   </Label>
-                <Button fx:id="logoutButton" mnemonicParsing="false" text="Log Out">
+                <Button mnemonicParsing="false" onAction="#logout" text="Log Out">
                      <font>
                         <Font size="14.0" />
                      </font>
@@ -28,23 +29,36 @@
                <padding>
                   <Insets bottom="14.0" left="30.0" top="14.0" />
                </padding>
-            </HBox>
-            <VBox alignment="TOP_CENTER" prefHeight="223.0" prefWidth="700.0" spacing="20.0">
                <VBox.margin>
-                  <Insets left="30.0" right="30.0" top="175.0" />
+                  <Insets bottom="20.0" />
+               </VBox.margin>
+            </HBox>
+            <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0" VBox.vgrow="ALWAYS">
+               <children>
+                  <ImageView fx:id="logo" fitHeight="150.0" fitWidth="200.0" pickOnBounds="true" preserveRatio="true" HBox.hgrow="ALWAYS" />
+               </children>
+            </HBox>
+            <VBox alignment="CENTER" prefHeight="223.0" prefWidth="700.0" spacing="20.0" VBox.vgrow="ALWAYS">
+               <VBox.margin>
+                  <Insets bottom="14.0" left="30.0" right="30.0" top="20.0" />
                </VBox.margin>
                <children>
-                  <Button fx:id="patientsButton" mnemonicParsing="false" prefWidth="700.0" style="-fx-background-color: #8282FF;" text="Patients">
+                  <Button mnemonicParsing="false" onAction="#onPatientsClick" prefWidth="700.0" style="-fx-background-color: #4DA6FF;" text="Patients" VBox.vgrow="ALWAYS">
                      <font>
                         <Font size="36.0" />
                      </font>
                   </Button>
-                  <Button layoutX="10.0" layoutY="87.0" mnemonicParsing="false" prefWidth="700.0" style="-fx-background-color: #8282FF;" text="Invoices">
+                  <Button layoutX="10.0" layoutY="10.0" mnemonicParsing="false" onAction="#onVisitsClick" prefWidth="700.0" style="-fx-background-color: #4DA6FF;" text="Visits" VBox.vgrow="ALWAYS">
                      <font>
                         <Font size="36.0" />
                      </font>
                   </Button>
-                  <Button layoutX="10.0" layoutY="204.0" mnemonicParsing="false" prefWidth="700.0" style="-fx-background-color: #8282FF;" text="Clinic Info">
+                  <Button layoutX="10.0" layoutY="87.0" mnemonicParsing="false" prefWidth="700.0" style="-fx-background-color: #4DA6FF;" text="Invoices" VBox.vgrow="ALWAYS">
+                     <font>
+                        <Font size="36.0" />
+                     </font>
+                  </Button>
+                  <Button layoutX="10.0" layoutY="204.0" mnemonicParsing="false" prefWidth="700.0" style="-fx-background-color: #4DA6FF;" text="Clinic Info" VBox.vgrow="ALWAYS">
                      <font>
                         <Font size="36.0" />
                      </font>

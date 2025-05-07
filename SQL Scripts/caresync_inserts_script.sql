@@ -20,7 +20,7 @@ VALUES
 -- Rooms
 INSERT INTO rooms (room_type, room_cost)
 VALUES
-('General Checkup', 75.00),
+('General', 75.00),
 ('Emergency', 200.00),
 ('Surgery', 500.00);
 
@@ -33,7 +33,7 @@ VALUES
 ('David', 'King', 'admin', 3);
 
 -- Staff Auth
-INSERT INTO staff_auth (staff_id, email, hashed_password) -- '1234'
+INSERT INTO staff_auth (staff_id, email, hashed_password) -- '1234' for testing
 VALUES
 (1, 'alice.morgan@clinic.com', '$2a$10$HTw7hBnCmcY3EzdXNVB0WepnL.FuaCUxMWC6x8ENVBQ6oBFm3JPKO'),
 (2, 'bob.thompson@clinic.com', '$2a$10$HTw7hBnCmcY3EzdXNVB0WepnL.FuaCUxMWC6x8ENVBQ6oBFm3JPKO'),
@@ -47,10 +47,10 @@ VALUES
 ('Frank', 'Thompson', '555-300-4001', 'frank.thompson@example.com');
 
 -- Patients
-INSERT INTO patients (first_name, middle_init, last_name, gender, phone, email, contact_id)
+INSERT INTO patients (first_name, middle_init, last_name, date_of_birth, gender, phone, email, contact_id)
 VALUES
-('Grace', 'L', 'Hopper', 'f', '555-111-1111', 'grace.hopper@example.com', 1),
-('Henry', 'B', 'Ford', 'm', '555-222-2222', 'henry.ford@example.com', 2);
+('Grace', 'L', 'Hopper', '1999-12-16', 'f', '555-111-1111', 'grace.hopper@example.com', 1),
+('Henry', 'B', 'Ford', '1983-06-23', 'm', '555-222-2222', 'henry.ford@example.com', 2);
 
 -- Treatments
 INSERT INTO treatments (treatment_name, cost)
