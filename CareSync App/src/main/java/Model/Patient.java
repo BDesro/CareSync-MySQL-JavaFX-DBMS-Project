@@ -14,6 +14,8 @@ public class Patient
     private String email;
     private int contactID;
 
+    private String formattedName;
+
     public Patient(int patientID, String firstName, char middleInitial, String lastName, LocalDate dob,
                    char gender, String phoneNumber, String email, int contactID)
     {
@@ -30,7 +32,8 @@ public class Patient
 
     public String getFormattedName()
     {
-        return String.format("%s, %s %s.", lastName, firstName, middleInitial);
+        formattedName = String.format("%s, %s %s.", lastName, firstName, middleInitial);
+        return formattedName;
     }
 
     public int getPatientID()

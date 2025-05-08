@@ -63,7 +63,7 @@ CREATE TABLE staff
 	staff_id INT PRIMARY KEY AUTO_INCREMENT,
     first_name VARCHAR(25) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
-    staff_role ENUM('nurse', 'doctor', 'receptionist', 'admin') NOT NULL,
+    staff_role ENUM('doctor', 'receptionist', 'admin') NOT NULL,
     clinic_id INT NOT NULL,
     created_at DATETIME NOT NULL DEFAULT NOW(),
     updated_at DATETIME NOT NULL DEFAULT NOW(),
@@ -209,10 +209,9 @@ CREATE TABLE visit_records
     room_id INT NOT NULL,
     staff_id INT NOT NULL,
     visit_date DATETIME NOT NULL DEFAULT NOW(),
-    reason_for_visit VARCHAR(255) NOT NULL DEFAULT "None Specified",
+    reason_for_visit VARCHAR(255) NOT NULL,
     symptoms VARCHAR(255) NOT NULL DEFAULT "None Specified",
     diagnosis VARCHAR(255) NOT NULL DEFAULT "None Specified",
-    medicine_prescribed BOOL NOT NULL DEFAULT FALSE,
     is_complete BOOL NOT NULL DEFAULT FALSE,
     created_at DATETIME NOT NULL DEFAULT NOW(),
     updated_at DATETIME NOT NULL DEFAULT NOW(),
@@ -284,18 +283,20 @@ CREATE TABLE invoices
 -- Creates the Recent Visits View
 CREATE OR REPLACE VIEW recent_visits AS
 SELECT 
-    vr.record_id,
+    vr.record_id, p.patient_id, c.clinic_id, r.room_id, s.staff_id,
     p.first_name AS patient_first_name,
     p.middle_init AS patient_middle_init,
     p.last_name AS patient_last_name,
     vr.visit_date, vr.reason_for_visit, c.clinic_name, r.room_type, s.staff_role,
     s.first_name AS staff_first_name,
     s.last_name AS staff_last_name,
-    vr.diagnosis,
+    vr.symptoms, vr.diagnosis,
 
     -- Combine treatments and prescriptions
     GROUP_CONCAT(DISTINCT t.treatment_name ORDER BY t.treatment_name SEPARATOR ', ') AS treatments,
-    GROUP_CONCAT(DISTINCT m.med_name ORDER BY m.med_name SEPARATOR ', ') AS prescriptions
+    GROUP_CONCAT(DISTINCT m.med_name ORDER BY m.med_name SEPARATOR ', ') AS prescriptions,
+    
+    vr.is_complete
 
 FROM visit_records vr
 
@@ -310,8 +311,8 @@ LEFT JOIN treatments t ON rt.treatment_id = t.treatment_id
 LEFT JOIN record_prescriptions rp ON vr.record_id = rp.record_id
 LEFT JOIN medications m ON rp.med_id = m.med_id
 
-GROUP BY vr.record_id, p.first_name, p.middle_init, p.last_name, vr.visit_date, vr.reason_for_visit,
-         c.clinic_name, r.room_type, s.staff_role, s.first_name, s.last_name, vr.diagnosis
+GROUP BY vr.record_id, p.patient_id, c.clinic_id, r.room_id, s.staff_id, p.first_name, p.middle_init, p.last_name, vr.visit_date, 
+		 vr.reason_for_visit, c.clinic_name, r.room_type, s.staff_role, s.first_name, s.last_name, vr.symptoms, vr.diagnosis, vr.is_complete
 ORDER BY vr.visit_date DESC;
 
 -- Creates the Unpaid Invoices View
@@ -451,29 +452,11 @@ DROP PROCEDURE IF EXISTS addNewVisit;
 DELIMITER //
 CREATE PROCEDURE addNewVisit(
 	IN in_patient_id INT, IN in_clinic_id INT, IN in_room_id INT, IN in_staff_id INT,
-    IN in_reason_for_visit VARCHAR(255), IN in_symptoms VARCHAR(255), IN in_diagnosis VARCHAR(255), 
-    IN in_treatment_id INT, IN in_med_id INT, IN in_med_quantity INT
+    IN in_reason_for_visit VARCHAR(255)
 )
 BEGIN
-	DECLARE new_record_id INT;
-    
-	INSERT INTO visit_records (patient_id, clinic_id, room_id, staff_id, reason_for_visit, 
-							   symptoms, diagnosis, medicine_prescribed)
-	VALUES (in_patient_id, in_clinic_id, in_room_id, in_staff_id, in_reason_for_visit,
-			in_symptoms, in_diagnosis, IF(in_med_id IS NOT NULL, TRUE, FALSE));
-	
-    SET new_record_id = LAST_INSERT_ID();
-    
-    IF in_treatment_id IS NOT NULL THEN
-		INSERT INTO record_treatments (record_id, treatment_id)
-        VALUES (new_record_id, in_treatment_id);
-	END IF;
-    
-    IF in_med_id IS NOT NULL AND in_med_quantity IS NOT NULL THEN
-		CALL addPrescription(new_record_id, in_med_id, in_med_quantity);
-	END IF;
-    
-    CALL generateInvoice(new_record_id);
+	INSERT INTO visit_records (patient_id, clinic_id, room_id, staff_id, reason_for_visit)
+	VALUES (in_patient_id, in_clinic_id, in_room_id, in_staff_id, in_reason_for_visit);
 END //
 DELIMITER ;
 -- ==================================================================================================================================

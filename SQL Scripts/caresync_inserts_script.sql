@@ -28,7 +28,7 @@ VALUES
 INSERT INTO staff (first_name, last_name, staff_role, clinic_id)
 VALUES
 ('Alice', 'Morgan', 'doctor', 1),
-('Bob', 'Thompson', 'nurse', 1),
+('Bob', 'Thompson', 'doctor', 2),
 ('Carol', 'Reed', 'receptionist', 2),
 ('David', 'King', 'admin', 3);
 
@@ -67,10 +67,10 @@ VALUES
 ('Metformin', 30.00, 75);
 
 -- Visit Records
-INSERT INTO visit_records (patient_id, clinic_id, room_id, staff_id, reason_for_visit, symptoms, diagnosis, medicine_prescribed)
+INSERT INTO visit_records (patient_id, clinic_id, room_id, staff_id, reason_for_visit, symptoms, diagnosis)
 VALUES
-(1, 1, 1, 1, 'Routine Checkup', 'Mild headache', 'Tension headache', TRUE),
-(2, 2, 2, 2, 'Flu Symptoms', 'Fever, cough', 'Influenza', TRUE);
+(1, 1, 1, 1, 'Routine Checkup', 'Mild headache', 'Tension headache'),
+(2, 2, 2, 2, 'Flu Symptoms', 'Fever, cough', 'Influenza');
 
 -- Record_Treatments
 INSERT INTO record_treatments (record_id, treatment_id)

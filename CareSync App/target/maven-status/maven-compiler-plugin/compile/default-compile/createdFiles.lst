@@ -5,6 +5,7 @@ util\AppGlobals.class
 core\SceneManager$1.class
 Model\Staff.class
 util\CareSyncDB.class
+Model\Visit.class
 core\SceneID.class
 controller\LoginViewController.class
 controller\VisitsViewController.class
