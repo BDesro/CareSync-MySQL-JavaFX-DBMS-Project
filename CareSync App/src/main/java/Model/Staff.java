@@ -84,4 +84,10 @@ public class Staff
     {
         this.hashedPassword = hashedPassword;
     }
+
+    @Override
+    public String toString()
+    {
+        return firstName + " " + lastName;
+    }
 }

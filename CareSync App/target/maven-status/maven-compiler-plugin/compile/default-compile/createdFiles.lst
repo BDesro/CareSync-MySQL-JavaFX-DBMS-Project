@@ -1,4 +1,6 @@
 core\SceneManager.class
+Model\Clinic.class
+Model\Room.class
 controller\ReceptionistDashboardController.class
 controller\PatientsViewController.class
 util\AppGlobals.class

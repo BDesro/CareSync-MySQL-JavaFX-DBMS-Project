@@ -1,7 +1,6 @@
 package controller;
 
-import Model.Patient;
-import Model.Visit;
+import Model.*;
 import core.SceneID;
 import core.SceneManager;
 import javafx.collections.FXCollections;
@@ -21,6 +20,7 @@ import util.CareSyncDB;
 
 import java.sql.*;
 import java.time.LocalDate;
+import java.util.Objects;
 
 import static javafx.scene.control.TableView.CONSTRAINED_RESIZE_POLICY;
 
@@ -46,25 +46,26 @@ public class VisitsViewController
         lastFirstLabel.setText(AppGlobals.activeUser.getLastName() + ", " + AppGlobals.activeUser.getFirstName());
         logo.setImage(AppGlobals.CARESYNCLOGO);
 
-        ObservableList<Visit> loadedVisits = pullVisitsFromDB();
+        ObservableList<Visit> loadedVisits = CareSyncDB.pullVisitsFromDB();
         if(loadedVisits != null)
             visits.setAll(loadedVisits);
         else
             System.err.println("Failed to load visits from DB");
 
         configureTable();
+        setupVisitUI();
     }
 
-    private void setupPatientUI() {
+    private void setupVisitUI() {
         addVisitButton.setOnAction(e -> toggleFormVisibility());
 
-        // Create patient detail panel
+        // Create visit detail panel
         detailView = new VBox(10);
         detailView.setPadding(new Insets(10));
         detailView.setStyle("-fx-border-color: gray; -fx-border-radius: 5; -fx-background-color: #f8f8f8;");
         detailView.setVisible(false); // hidden until user clicks
 
-        // Create patient form panel
+        // Create visit form panel
         formView = createAddVisitForm();
         formView.setVisible(false);
 
@@ -118,6 +119,87 @@ public class VisitsViewController
         formVisible = false;
     }
 
+    private VBox createAddVisitForm() {
+        VBox form = new VBox(10);
+        form.setPadding(new Insets(10));
+        form.setStyle("-fx-border-color: darkgray; -fx-background-color: #f0f0ff;");
+
+        Label title = new Label("Add New Visit");
+        title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+
+        ComboBox<Patient> patientSelector = new ComboBox<>();
+        patientSelector.getItems().addAll(Objects.requireNonNull(CareSyncDB.pullPatientsFromDB()));
+        patientSelector.setPromptText("Select Patient");
+
+        ComboBox<Staff> staffSelector = new ComboBox<>();
+        staffSelector.getItems().addAll(Objects.requireNonNull(CareSyncDB.pullDoctorsFromDB()));
+        staffSelector.setPromptText("Select Doctor");
+
+        TextField clinicField = new TextField(AppGlobals.currentClinic.getClinicName());
+        clinicField.setEditable(false);
+
+        ComboBox<Room> roomSelector = new ComboBox<>();
+        roomSelector.getItems().addAll(Objects.requireNonNull(CareSyncDB.pullRoomsFromDB()));
+        roomSelector.setPromptText("Select Room");
+
+        TextField reasonField = new TextField();
+        reasonField.setPromptText("Reason for Visit");
+
+        Button saveButton = new Button("Submit Visit");
+        saveButton.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+
+        saveButton.setOnAction(e -> {
+            Patient patient = patientSelector.getSelectionModel().getSelectedItem();
+            Staff staff = staffSelector.getSelectionModel().getSelectedItem();
+            Clinic clinic = AppGlobals.currentClinic;
+            Room room = roomSelector.getSelectionModel().getSelectedItem();
+            String reason = reasonField.getText();
+
+            if (patient == null || staff == null || reason == null)
+            {
+                showAlert("Missing required fields");
+                return;
+            }
+
+            String call = "{CALL AddNewVisit(?, ?, ?, ?, ?, ?)}";
+
+            try (Connection conn = CareSyncDB.getConnection();
+                 CallableStatement stmt = conn.prepareCall(call))
+            {
+                stmt.setInt(1, patient.getPatientID());
+                stmt.setInt(2, clinic.getClinicID());
+                stmt.setInt(3, room.getRoomID());
+                stmt.setInt(4, staff.getStaffID());
+                stmt.setString(5, reason);
+                stmt.registerOutParameter(6, Types.INTEGER);
+
+                stmt.execute();
+
+                int newVisitID = stmt.getInt(6);
+
+                Visit visit = CareSyncDB.getVisitByID(newVisitID);
+                visits.add(visit);
+                showAlert("Successfully added new visit");
+
+                patientSelector.getSelectionModel().clearSelection();
+                staffSelector.getSelectionModel().clearSelection();
+                clinicField.clear();
+                roomSelector.getSelectionModel().clearSelection();
+                reasonField.clear();
+                formVisible = false;
+                form.setVisible(false);
+            } catch(SQLException ex) {
+                System.out.println(ex.getMessage());
+                showAlert("Failed to Submit Visit");
+            }
+
+            toggleFormVisibility();
+        });
+
+        form.getChildren().addAll(title, patientSelector, staffSelector, clinicField, roomSelector, reasonField, saveButton);
+        return form;
+    }
+
     public void configureTable()
     {
         visitsTable.getColumns().clear();
@@ -133,7 +215,7 @@ public class VisitsViewController
         TableColumn<Visit, String> completeCol = new TableColumn<>("Status");
         completeCol.setCellValueFactory(new PropertyValueFactory<>("complete"));
 
-        visitsTable.getColumns().addAll(pNameCol, dateCol);
+        visitsTable.getColumns().addAll(pNameCol, dateCol, sNameCol, completeCol);
 
         FilteredList<Visit> filteredData = new FilteredList<>(visits, p -> true);
 
@@ -158,59 +240,7 @@ public class VisitsViewController
         visitsTable.setFixedCellSize(40);
     }
 
-    public ObservableList<Visit> pullVisitsFromDB()
-    {
-        ObservableList<Visit> dbVisits = FXCollections.observableArrayList();
 
-        String query = "SELECT * FROM recent_visits WHERE clinic_id = ? ";
-        if(AppGlobals.activeUser.getStaffRole().equals("doctor"))
-            query += "&& staff_id = ? ";
-        query += " ORDER BY visit_date DESC";
-
-        try(Connection conn = CareSyncDB.getConnection();
-            PreparedStatement stmt = conn.prepareStatement(query))
-        {
-            stmt.setInt(1, AppGlobals.activeUser.getClinicID());
-            if(AppGlobals.activeUser.getStaffRole().equals("doctor"))
-                stmt.setInt(2, AppGlobals.activeUser.getStaffID());
-            ResultSet rs = stmt.executeQuery();
-
-            while(rs.next())
-            {
-                int visitID = rs.getInt("record_id");
-                int patientID = rs.getInt("patient_id");
-                int clinicID = rs.getInt("clinic_id");
-                int roomID = rs.getInt("room_id");
-                int staffID = rs.getInt("staff_id");
-                String reason = rs.getString("reason_for_visit");
-                Timestamp timestamp = rs.getTimestamp("visit_date");
-                LocalDate date = timestamp.toLocalDateTime().toLocalDate();
-                String pFName = rs.getString("patient_first_name");
-                char pMInit = rs.getString("patient_middle_init").charAt(0);
-                String pLName = rs.getString("patient_last_name");
-                String clinicName = rs.getString("clinic_name");
-                String roomType = rs.getString("room_type");
-                String staffRole = rs.getString("staff_role");
-                String staffFirstName = rs.getString("staff_first_name");
-                String staffLastName = rs.getString("staff_last_name");
-                String symptoms = rs.getString("symptoms");
-                String diagnosis = rs.getString("diagnosis");
-                String treatments = rs.getString("treatments");
-                String prescriptions = rs.getString("prescriptions");
-                boolean complete = rs.getBoolean("is_complete");
-
-                dbVisits.add(new Visit(visitID, patientID, clinicID, roomID, staffID, reason, date,
-                                       pFName, pMInit, pLName, clinicName, roomType, staffRole, staffFirstName,
-                                       staffLastName, symptoms, diagnosis, treatments, prescriptions, complete));
-            }
-            rs.close();
-        } catch(SQLException ex) {
-            System.out.println(ex.getMessage());
-            return null;
-        }
-
-        return dbVisits;
-    }
 
     private void toggleFormVisibility() {
         formVisible = !formVisible;

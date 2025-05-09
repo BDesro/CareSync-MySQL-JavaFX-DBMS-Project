@@ -44,7 +44,7 @@ public class PatientsViewController
         userLastFirstName.setText(AppGlobals.activeUser.getLastName() + ", " + AppGlobals.activeUser.getFirstName());
         logo.setImage(AppGlobals.CARESYNCLOGO);
 
-        ObservableList<Patient> loadedPatients = pullPatientsFromDB();
+        ObservableList<Patient> loadedPatients = CareSyncDB.pullPatientsFromDB();
         if (loadedPatients != null) {
             patients.setAll(loadedPatients);
         } else {
@@ -329,35 +329,5 @@ public class PatientsViewController
         patientsTable.setFixedCellSize(40);             // Increase row height
     }
 
-    public ObservableList<Patient> pullPatientsFromDB()
-    {
-        ObservableList<Patient> dbPatients = FXCollections.observableArrayList();
 
-        String query = "SELECT * FROM patients ORDER BY last_name";
-
-        try(Connection connection = CareSyncDB.getConnection();
-            PreparedStatement stmt = connection.prepareStatement(query))
-        {
-            ResultSet rs = stmt.executeQuery();
-            while(rs.next())
-            {
-                int id = rs.getInt("patient_id");
-                String fName = rs.getString("first_name");
-                char middle_init = rs.getString("middle_init").charAt(0);
-                String lName = rs.getString("last_name");
-                LocalDate dob = LocalDate.parse(rs.getString("date_of_birth"));
-                char gender = rs.getString("gender").charAt(0);
-                String phone = rs.getString("phone");
-                String email = rs.getString("email");
-                int contact_id = rs.getInt("contact_id");
-
-                dbPatients.add(new Patient(id, fName, middle_init, lName, dob, gender, phone, email, contact_id));
-            }
-            rs.close();
-            return dbPatients;
-        } catch(SQLException e) {
-            System.out.println(e.getMessage());
-            return null;
-        }
-    }
 }

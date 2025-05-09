@@ -73,7 +73,7 @@ public class LoginViewController
 
         if(BCrypt.checkpw(pass, user.getHashedPassword()))
         {
-            AppGlobals.activeUser = user;
+            AppGlobals.setActiveUser(user);
             return true;
         }
         else

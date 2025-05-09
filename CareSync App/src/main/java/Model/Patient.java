@@ -125,4 +125,10 @@ public class Patient
     {
         this.contactID = contactID;
     }
+
+    @Override
+    public String toString()
+    {
+        return firstName + " " + middleInitial + ". " + lastName;
+    }
 }

@@ -452,11 +452,13 @@ DROP PROCEDURE IF EXISTS addNewVisit;
 DELIMITER //
 CREATE PROCEDURE addNewVisit(
 	IN in_patient_id INT, IN in_clinic_id INT, IN in_room_id INT, IN in_staff_id INT,
-    IN in_reason_for_visit VARCHAR(255)
+    IN in_reason_for_visit VARCHAR(255), OUT new_visit_id INT
 )
 BEGIN
 	INSERT INTO visit_records (patient_id, clinic_id, room_id, staff_id, reason_for_visit)
 	VALUES (in_patient_id, in_clinic_id, in_room_id, in_staff_id, in_reason_for_visit);
+    
+    SET new_visit_id = LAST_INSERT_ID();
 END //
 DELIMITER ;
 -- ==================================================================================================================================
