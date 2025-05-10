@@ -3,7 +3,7 @@ package core;
 public enum SceneID
 {
     LOGIN_SCREEN,
-    RECEPTIONIST_DASH,
+    DASH,
     PATIENTS_SCREEN,
     VISITS_SCREEN
 }

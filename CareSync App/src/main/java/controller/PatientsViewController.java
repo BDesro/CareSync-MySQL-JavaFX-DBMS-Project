@@ -20,6 +20,7 @@ import util.CareSyncDB;
 
 import java.sql.*;
 import java.time.LocalDate;
+import java.util.Optional;
 
 import static javafx.scene.control.TableView.CONSTRAINED_RESIZE_POLICY;
 
@@ -135,6 +136,21 @@ public class PatientsViewController
 
         detailView.getChildren().addAll(header, name, dob, gender, phone, email,
                                         contactHeader, cNameLabel, cPhoneLabel, cEmailLabel);
+
+        if(AppGlobals.activeUser.getStaffRole().equals("admin"))
+        {
+            Button deleteButton = new Button("Delete Patient");
+            deleteButton.setStyle("-fx-font-size: 14px;");
+            deleteButton.setOnAction(e -> {
+                if(showDeletionConfirmationAlert())
+                {
+                    CareSyncDB.deletePatient(patient);
+                    patients.remove(patient);
+                }
+            });
+
+            detailView.getChildren().addAll(deleteButton);
+        }
 
         detailView.setVisible(true);
         detailView.setManaged(true);
@@ -289,9 +305,25 @@ public class PatientsViewController
         alert.showAndWait();
     }
 
+    public boolean showDeletionConfirmationAlert() {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Delete Patient?");
+        alert.setHeaderText("Are you sure you want to delete this patient?");
+
+        ButtonType continueButton = new ButtonType("Continue");
+        ButtonType cancelButton = new ButtonType("Cancel");
+
+        alert.getButtonTypes().setAll(continueButton, cancelButton);
+
+        Optional<ButtonType> result = alert.showAndWait();
+
+        return result.isPresent() && result.get() == continueButton;
+    }
+
+
     public void onBackClick(ActionEvent e)
     {
-        SceneManager.INSTANCE.switchTo(SceneID.RECEPTIONIST_DASH);
+        SceneManager.INSTANCE.switchTo(SceneID.DASH);
     }
 
     public void configureTable()

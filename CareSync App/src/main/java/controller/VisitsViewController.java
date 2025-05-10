@@ -3,6 +3,7 @@ package controller;
 import Model.*;
 import core.SceneID;
 import core.SceneManager;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
@@ -19,8 +20,11 @@ import util.AppGlobals;
 import util.CareSyncDB;
 
 import java.sql.*;
+import java.text.NumberFormat;
 import java.time.LocalDate;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 
 import static javafx.scene.control.TableView.CONSTRAINED_RESIZE_POLICY;
 
@@ -57,7 +61,9 @@ public class VisitsViewController
     }
 
     private void setupVisitUI() {
-        addVisitButton.setOnAction(e -> toggleFormVisibility());
+        if(AppGlobals.activeUser.getStaffRole().equals("receptionist") ||
+           AppGlobals.activeUser.getStaffRole().equals("admin"))
+            addVisitButton.setOnAction(e -> toggleFormVisibility());
 
         // Create visit detail panel
         detailView = new VBox(10);
@@ -96,19 +102,49 @@ public class VisitsViewController
         room.setStyle("-fx-font-size: 14px;");
         Label doctor = new Label("Doctor: " + visit.getFormattedStaffName());
         doctor.setStyle("-fx-font-size: 14px;");
-        Label symptoms = new Label("Symptoms: " + visit.getSymptoms());
-        symptoms.setStyle("-fx-font-size: 14px;");
-        Label diagnosis = new Label("Diagnosis: " + visit.getDiagnosis());
-        diagnosis.setStyle("-fx-font-size: 14px;");
-        Label treatments = new Label("Treatments: " + visit.getTreatments());
-        treatments.setStyle("-fx-font-size: 14px;");
-        Label prescriptions = new Label("Prescriptions: " + visit.getPrescriptions());
-        prescriptions.setStyle("-fx-font-size: 14px;");
+        Label complete = new Label("Complete?: " + visit.isComplete());
+        complete.setStyle("-fx-font-size: 14px;");
 
-        detailView.getChildren().addAll(header, name, date, clinic, room, doctor);
-        
+        detailView.getChildren().addAll(header, name, date, clinic, room, doctor, complete);
+
+        if(AppGlobals.activeUser.getStaffRole().equals("receptionist") && visit.isComplete())
+        {
+            Invoice invoice = CareSyncDB.getInvoiceForRecord(visit.getRecordID());
+            Label invoiceTotal = new Label("Invoice Total: " + NumberFormat.getCurrencyInstance(Locale.US).format(invoice.getTotalAmount()));
+            invoiceTotal.setStyle("-fx-font-size: 14px;");
+            Label invoicePaid = new Label("Invoice Paid: " + invoice.isPaid());
+            invoicePaid.setStyle("-fx-font-size: 14px;");
+
+            detailView.getChildren().addAll(invoiceTotal, invoicePaid);
+        }
+
         if(AppGlobals.activeUser.getStaffRole().equals("doctor"))
+        {
+            Label symptoms = new Label("Symptoms: " + visit.getSymptoms());
+            symptoms.setStyle("-fx-font-size: 14px;");
+            Label diagnosis = new Label("Diagnosis: " + visit.getDiagnosis());
+            diagnosis.setStyle("-fx-font-size: 14px;");
+            Label treatments = new Label("Treatments: " + visit.getTreatments());
+            treatments.setStyle("-fx-font-size: 14px;");
+            Label prescriptions = new Label("Prescriptions: " + visit.getPrescriptions());
+            prescriptions.setStyle("-fx-font-size: 14px;");
             detailView.getChildren().addAll(symptoms, treatments, prescriptions);
+        }
+
+        if(AppGlobals.activeUser.getStaffRole().equals("admin"))
+        {
+            Button deleteButton = new Button("Delete visit");
+            deleteButton.setStyle("-fx-font-size: 14px;");
+            deleteButton.setOnAction(e -> {
+                if(showDeletionConfirmationAlert())
+                {
+                    CareSyncDB.deleteVisit(visit);
+                    visits.remove(visit);
+                }
+            });
+
+            detailView.getChildren().addAll(deleteButton);
+        }
 
         detailView.setVisible(true);
         detailView.setManaged(true);
@@ -206,6 +242,7 @@ public class VisitsViewController
 
         TableColumn<Visit, String> pNameCol = new TableColumn<>("Patient Name");
         pNameCol.setCellValueFactory(new PropertyValueFactory<>("formattedPatientName"));
+        pNameCol.setStyle("-fx-alignment: CENTER;");
         TableColumn<Visit, String> dateCol = new TableColumn<>("Date");
         dateCol.setCellValueFactory(new PropertyValueFactory<>("visitDate"));
         dateCol.setStyle( "-fx-alignment: CENTER;");
@@ -213,7 +250,12 @@ public class VisitsViewController
         sNameCol.setCellValueFactory(new PropertyValueFactory<>("formattedStaffName"));
         sNameCol.setStyle( "-fx-alignment: CENTER;");
         TableColumn<Visit, String> completeCol = new TableColumn<>("Status");
-        completeCol.setCellValueFactory(new PropertyValueFactory<>("complete"));
+        completeCol.setCellValueFactory(cellData -> {
+            boolean complete = cellData.getValue().isComplete();
+            String status = complete ? "Complete" : "Incomplete";
+            return new SimpleStringProperty(status);
+        });
+        completeCol.setStyle("-fx-alignment: CENTER;");
 
         visitsTable.getColumns().addAll(pNameCol, dateCol, sNameCol, completeCol);
 
@@ -263,8 +305,23 @@ public class VisitsViewController
         alert.showAndWait();
     }
 
+    public boolean showDeletionConfirmationAlert() {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Delete Visit?");
+        alert.setHeaderText("Are you sure you want to delete this visit?");
+
+        ButtonType continueButton = new ButtonType("Continue");
+        ButtonType cancelButton = new ButtonType("Cancel");
+
+        alert.getButtonTypes().setAll(continueButton, cancelButton);
+
+        Optional<ButtonType> result = alert.showAndWait();
+
+        return result.isPresent() && result.get() == continueButton;
+    }
+
     public void onBackClick(ActionEvent e)
     {
-        SceneManager.INSTANCE.switchTo(SceneID.RECEPTIONIST_DASH);
+        SceneManager.INSTANCE.switchTo(SceneID.DASH);
     }
 }

@@ -45,14 +45,7 @@ public class LoginViewController
                     messageLabel.setStyle("-fx-text-fill: green;");
                     messageLabel.setText("Login Successful");
 
-                    switch(user.getStaffRole().toLowerCase())
-                    {
-                        case "receptionist":
-                            SceneManager.INSTANCE.switchTo(SceneID.RECEPTIONIST_DASH);
-                            break;
-                        default:
-                            break;
-                    }
+                    SceneManager.INSTANCE.switchTo(SceneID.DASH);
                 }
             }
             else

@@ -30,7 +30,8 @@ VALUES
 ('Alice', 'Morgan', 'doctor', 1),
 ('Bob', 'Thompson', 'doctor', 2),
 ('Carol', 'Reed', 'receptionist', 2),
-('David', 'King', 'admin', 3);
+('David', 'King', 'admin', 2),
+('Sylas', 'May', 'receptionist', 1);
 
 -- Staff Auth
 INSERT INTO staff_auth (staff_id, email, hashed_password) -- '1234' for testing
@@ -38,7 +39,8 @@ VALUES
 (1, 'alice.morgan@clinic.com', '$2a$10$HTw7hBnCmcY3EzdXNVB0WepnL.FuaCUxMWC6x8ENVBQ6oBFm3JPKO'),
 (2, 'bob.thompson@clinic.com', '$2a$10$HTw7hBnCmcY3EzdXNVB0WepnL.FuaCUxMWC6x8ENVBQ6oBFm3JPKO'),
 (3, 'carol.reed@clinic.com', '$2a$10$HTw7hBnCmcY3EzdXNVB0WepnL.FuaCUxMWC6x8ENVBQ6oBFm3JPKO'),
-(4, 'david.king@clinic.com', '$2a$10$HTw7hBnCmcY3EzdXNVB0WepnL.FuaCUxMWC6x8ENVBQ6oBFm3JPKO');
+(4, 'david.king@clinic.com', '$2a$10$HTw7hBnCmcY3EzdXNVB0WepnL.FuaCUxMWC6x8ENVBQ6oBFm3JPKO'),
+(5, 'sylas.may@clinic.com', '$2a$10$HTw7hBnCmcY3EzdXNVB0WepnL.FuaCUxMWC6x8ENVBQ6oBFm3JPKO');
 
 -- Emergency Contacts
 INSERT INTO emergency_contacts (first_name, last_name, phone, email)

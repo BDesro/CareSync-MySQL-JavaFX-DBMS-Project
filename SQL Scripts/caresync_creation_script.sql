@@ -238,7 +238,8 @@ CREATE TABLE record_treatments
     
     CONSTRAINT record_treatments_pk PRIMARY KEY (record_id, treatment_id),
     CONSTRAINT record_id_r_t_fk FOREIGN KEY (record_id) REFERENCES visit_records (record_id)
-		ON UPDATE CASCADE,
+		ON UPDATE CASCADE
+        ON DELETE CASCADE,
 	CONSTRAINT treatment_id_fk FOREIGN KEY (treatment_id) REFERENCES treatments (treatment_id)
 		ON UPDATE CASCADE
 ) AUTO_INCREMENT = 1;
@@ -255,7 +256,8 @@ CREATE TABLE record_prescriptions
     
     CONSTRAINT record_prescriptions_pk PRIMARY KEY (record_id, med_id),
     CONSTRAINT record_id_fk FOREIGN KEY (record_id) REFERENCES visit_records (record_id)
-		ON UPDATE CASCADE,
+		ON UPDATE CASCADE
+        ON DELETE CASCADE,
 	CONSTRAINT med_id_fk FOREIGN KEY (med_id) REFERENCES medications (med_id)
 		ON UPDATE CASCADE
 ) AUTO_INCREMENT = 1;
@@ -273,6 +275,8 @@ CREATE TABLE invoices
     paid BOOL NOT NULL DEFAULT FALSE,
     
     CONSTRAINT record_id_invoice_fk FOREIGN KEY (record_id) REFERENCES visit_records (record_id)
+		ON UPDATE CASCADE
+        ON DELETE CASCADE
 ) AUTO_INCREMENT = 1;
 -- ==================================================================================================================================
 
@@ -379,44 +383,52 @@ DELIMITER ;
 
 DROP PROCEDURE IF EXISTS getDoctorVisits;
 DELIMITER //
-CREATE PROCEDURE getDoctorVisits(IN first_name VARCHAR(25), IN last_name VARCHAR(50))
+CREATE PROCEDURE getDoctorVisits(IN staff_id INT)
 BEGIN
-	SELECT * FROM recent_visits
-    WHERE staff_first_name = first_name AND staff_last_name = last_name;
+	SELECT * FROM recent_visits rv
+    WHERE rv.staff_id = staff_id;
 END //
 DELIMITER ;
 
--- Procedure to generate a new visit invoice
-DROP PROCEDURE IF EXISTS generateInvoice;
+-- Trigger to generate a new visit invoice
+DROP TRIGGER IF EXISTS generate_invoice_after_complete;
 DELIMITER //
-CREATE PROCEDURE generateInvoice(IN p_record_id INT)
+CREATE TRIGGER generate_invoice_after_complete
+AFTER UPDATE ON visit_records
+FOR EACH ROW
 BEGIN
 	DECLARE total_cost DECIMAL(10, 2);
-    
-    SELECT r.room_cost + 
-		   (SELECT IFNULL(SUM(t.cost), 0)
-			FROM record_treatments rt JOIN treatments t ON rt.treatment_id = t.treatment_id
-			WHERE rt.record_id = p_record_id) +
-		   (SELECT IFNULL(SUM(m.cost * rp.quantity), 0)
-			FROM record_prescriptions rp JOIN medications m ON rp.med_id = m.med_id
-			WHERE rp.record_id = p_record_id)
-		   INTO total_cost
-	FROM visit_records vr JOIN record_treatments rt
-		 ON vr.record_id = rt.record_id
-						  JOIN treatments t
-		 ON rt.treatment_id = t.treatment_id
-						  JOIN record_prescriptions rp
-		 ON vr.record_id = rp.record_id
-						  JOIN medications m
-		 ON rp.med_id = m.med_id
-						  JOIN rooms r 
-		 ON vr.room_id = r.room_id
-	WHERE vr.record_id = p_record_id;
-    
-    INSERT INTO invoices (record_id, total_amount)
-    VALUES (p_record_id, total_cost);
-END //
+    -- Only proceed if is_complete changed from false to true
+    IF OLD.is_complete = FALSE AND NEW.is_complete = TRUE THEN
+        -- Compute total cost: room + treatments + prescriptions
+        SELECT
+            r.room_cost +
+            IFNULL((SELECT SUM(t.cost)
+                    FROM record_treatments rt
+                    JOIN treatments t ON rt.treatment_id = t.treatment_id
+                    WHERE rt.record_id = NEW.record_id), 0) +
+            IFNULL((SELECT SUM(m.cost * rp.quantity)
+                    FROM record_prescriptions rp
+                    JOIN medications m ON rp.med_id = m.med_id
+                    WHERE rp.record_id = NEW.record_id), 0)
+        INTO total_cost
+        FROM visit_records vr
+        JOIN rooms r ON vr.room_id = r.room_id
+        WHERE vr.record_id = NEW.record_id;
+
+        -- Insert the invoice
+        INSERT INTO invoices (record_id, total_amount)
+        VALUES (NEW.record_id, total_cost);
+    END IF;
+END;
+//
+
 DELIMITER ;
+
+
+DROP TRIGGER IF EXISTS after_update_vr_complete;
+DELIMITER //
+CREATE TRIGGER after_update_vr_complete
 
 -- Procedure to add a new prescription to the record_prescriptions table
 DROP PROCEDURE IF EXISTS addPrescription;
@@ -469,7 +481,7 @@ DELIMITER ;
 DROP USER IF EXISTS 'app_user'@'localhost';
 
 CREATE USER 'app_user'@'localhost' IDENTIFIED BY 'safePassword!';
-GRANT SELECT, INSERT, UPDATE ON caresync.* TO 'app_user'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON caresync.* TO 'app_user'@'localhost';
 GRANT EXECUTE ON caresync.* TO 'app_user'@'localhost';
 
 FLUSH PRIVILEGES;

@@ -89,39 +89,6 @@ public class CareSyncDB
         }
     }
 
-    public static Patient getPatientByID(int id)
-    {
-        Patient patient = null;
-
-        String query = "SELECT * " +
-                       "FROM patients p " +
-                       "WHERE p.patient_id = ?";
-        try(Connection conn = getConnection();
-            PreparedStatement stmt = conn.prepareStatement(query))
-        {
-            stmt.setInt(1, id);
-            ResultSet rs = stmt.executeQuery();
-
-            if(rs.next())
-            {
-                String fName = rs.getString("first_name");
-                char middle_init = rs.getString("middle_init").charAt(0);
-                String lName = rs.getString("last_name");
-                LocalDate dob = LocalDate.parse(rs.getString("date_of_birth"));
-                char gender = rs.getString("gender").charAt(0);
-                String phone = rs.getString("phone");
-                String email = rs.getString("email");
-                int contact_id = rs.getInt("contact_id");
-
-                patient = new Patient(id, fName, middle_init, lName, dob, gender, phone, email, contact_id);
-            }
-        } catch(SQLException ex){
-            System.out.println(ex.getMessage());
-            return null;
-        }
-        return patient;
-    }
-
     public static ObservableList<Patient> pullPatientsFromDB()
     {
         ObservableList<Patient> dbPatients = FXCollections.observableArrayList();
@@ -151,6 +118,20 @@ public class CareSyncDB
         } catch(SQLException e) {
             System.out.println(e.getMessage());
             return null;
+        }
+    }
+
+    public static void deletePatient(Patient patient)
+    {
+        String query = "DELETE FROM patients WHERE patient_id = ?";
+
+        try(Connection conn = getConnection();
+            PreparedStatement stmt = conn.prepareStatement(query))
+        {
+            stmt.setInt(1, patient.getPatientID());
+            stmt.executeUpdate();
+        } catch(SQLException e) {
+            System.out.println(e.getMessage());
         }
     }
 
@@ -258,7 +239,7 @@ public class CareSyncDB
 
         String query = "SELECT * FROM recent_visits WHERE clinic_id = ? ";
         if(AppGlobals.activeUser.getStaffRole().equals("doctor"))
-            query += "&& staff_id = ? ";
+            query += "AND staff_id = ? ";
         query += " ORDER BY visit_date DESC";
 
         try(Connection conn = CareSyncDB.getConnection();
@@ -304,5 +285,50 @@ public class CareSyncDB
         }
 
         return dbVisits;
+    }
+
+    public static void deleteVisit(Visit visit)
+    {
+        String query = "DELETE FROM visit_records WHERE record_id = ?";
+
+        try(Connection conn = getConnection();
+            PreparedStatement stmt = conn.prepareStatement(query))
+        {
+            stmt.setInt(1, visit.getRecordID());
+            stmt.executeUpdate();
+        } catch(SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    public static Invoice getInvoiceForRecord(int recordID)
+    {
+        Invoice invoice = null;
+
+        String query = "SELECT invoice_id, total_amount, issue_date, paid FROM invoices" +
+                " WHERE record_id = ? ";
+
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query))
+        {
+            stmt.setInt(1, recordID);
+            ResultSet rs = stmt.executeQuery();
+
+            if(rs.next())
+            {
+                int invoiceID = rs.getInt("invoice_id");
+                double totalAmount = rs.getDouble("total_amount");
+                LocalDate issueDate = rs.getTimestamp("issue_date").toLocalDateTime().toLocalDate();
+                boolean paid = rs.getBoolean("paid");
+
+                invoice = new Invoice(invoiceID, recordID, totalAmount, issueDate, paid);
+            }
+
+        } catch (SQLException e)
+        {
+            System.out.println(e.getMessage());
+        }
+
+        return invoice;
     }
 }

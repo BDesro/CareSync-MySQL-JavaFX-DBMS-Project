@@ -30,7 +30,7 @@ public enum SceneManager
                     scene = new Scene(loadFXML("/view/login-view.fxml"), 600, 500);
                     stage.setTitle("Login Page");
                     break;
-                case RECEPTIONIST_DASH:
+                case DASH:
                     scene = new Scene(loadFXML("/view/receptionist-dashboard-view.fxml"), 700, 720);
                     stage.setTitle("Receptionist Dashboard");
                     break;
