@@ -9,6 +9,7 @@ import util.AppGlobals;
 
 public class ClinicInfoController
 {
+    @FXML private Label userLastFirstName;
     @FXML private Label clinicName;
     @FXML private Label clinicAddress;
     @FXML private Label clinicPhone;
@@ -16,6 +17,7 @@ public class ClinicInfoController
     @FXML
     public void initialize()
     {
+        userLastFirstName.setText(AppGlobals.activeUser.getLastName() + ", " + AppGlobals.activeUser.getFirstName());
         clinicName.setText(AppGlobals.currentClinic.getClinicName());
         clinicAddress.setText(AppGlobals.currentClinic.getClinicAddress());
         clinicPhone.setText(AppGlobals.currentClinic.getClinicPhone());
