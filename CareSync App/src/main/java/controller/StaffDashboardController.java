@@ -8,7 +8,7 @@ import javafx.scene.control.Label;
 import javafx.scene.image.ImageView;
 import util.AppGlobals;
 
-public class ReceptionistDashboardController
+public class StaffDashboardController
 {
     // Register New Patients
 
@@ -37,6 +37,8 @@ public class ReceptionistDashboardController
     {
         SceneManager.INSTANCE.switchTo(SceneID.VISITS_SCREEN);
     }
+
+    public void onClinicInfoClick(ActionEvent e) { SceneManager.INSTANCE.switchTo(SceneID.CLINIC_INFO_SCREEN); }
 
     public void logout(ActionEvent e)
     {

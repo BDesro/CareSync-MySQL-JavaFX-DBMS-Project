@@ -31,7 +31,7 @@ public enum SceneManager
                     stage.setTitle("Login Page");
                     break;
                 case DASH:
-                    scene = new Scene(loadFXML("/view/receptionist-dashboard-view.fxml"), 700, 720);
+                    scene = new Scene(loadFXML("/view/staff-dashboard-view.fxml"), 700, 720);
                     stage.setTitle("Receptionist Dashboard");
                     break;
                 case PATIENTS_SCREEN:
@@ -42,6 +42,8 @@ public enum SceneManager
                     scene = new Scene(loadFXML("/view/visits-view.fxml"), resX, resY);
                     stage.setTitle("Visits");
                     break;
+                case CLINIC_INFO_SCREEN:
+                    scene = new Scene(loadFXML("/view/clinic-info-view.fxml"), 700, 720);
             }
 
             if(scene != null)

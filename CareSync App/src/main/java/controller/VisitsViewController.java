@@ -14,6 +14,7 @@ import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import util.AppGlobals;
@@ -22,11 +23,10 @@ import util.CareSyncDB;
 import java.sql.*;
 import java.text.NumberFormat;
 import java.time.LocalDate;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 import static javafx.scene.control.TableView.CONSTRAINED_RESIZE_POLICY;
+import static javafx.scene.layout.Region.USE_COMPUTED_SIZE;
 
 public class VisitsViewController
 {
@@ -58,6 +58,10 @@ public class VisitsViewController
 
         configureTable();
         setupVisitUI();
+
+        if(!AppGlobals.activeUser.getStaffRole().equals("receptionist") &&
+           !AppGlobals.activeUser.getStaffRole().equals("admin"))
+            addVisitButton.setVisible(false);
     }
 
     private void setupVisitUI() {
@@ -128,7 +132,109 @@ public class VisitsViewController
             treatments.setStyle("-fx-font-size: 14px;");
             Label prescriptions = new Label("Prescriptions: " + visit.getPrescriptions());
             prescriptions.setStyle("-fx-font-size: 14px;");
-            detailView.getChildren().addAll(symptoms, treatments, prescriptions);
+            Button editVisitButton = new Button("Edit Visit");
+            editVisitButton.setStyle("-fx-font-size: 14px;");
+            detailView.getChildren().addAll(symptoms, treatments, prescriptions, editVisitButton);
+            editVisitButton.setOnAction(e -> {
+                detailView.getChildren().removeAll(symptoms, diagnosis, treatments, prescriptions, editVisitButton);
+
+                HBox symptomBox = new HBox(10);
+                Label symptomPrompt = new Label("Symptoms: ");
+                TextField editSymptoms = new TextField();
+                editSymptoms.setPromptText("Enter Symptoms");
+                editSymptoms.setText(visit.getSymptoms());
+                symptomBox.getChildren().addAll(symptomPrompt, editSymptoms);
+
+                HBox diagnosisBox = new HBox(10);
+                Label diagnosisPrompt = new Label("Diagnosis: ");
+                TextField editDiagnosis = new TextField();
+                editDiagnosis.setPromptText("Enter Diagnosis");
+                editDiagnosis.setText(visit.getDiagnosis());
+                diagnosisBox.getChildren().addAll(diagnosisPrompt, editDiagnosis);
+                detailView.getChildren().addAll(symptomBox, diagnosisBox);
+
+                HBox treatmentPrescriptionBox = new HBox(10);
+
+                VBox treatmentsBox = new VBox(10);
+                VBox selectedTreatmentsBox = new VBox(); // where selected treatments will be shown
+                ComboBox<Treatment> treatmentSelector = new ComboBox<>();
+                treatmentSelector.getItems().addAll(CareSyncDB.pullTreatmentsFromDB()); // sample treatments
+                Button addTButton = new Button("Add Treatment");
+                Set<Treatment> selectedTreatments = new HashSet<>();
+                addTButton.setOnAction(ev -> {
+                    Treatment selected = treatmentSelector.getValue();
+                    if (selected != null && !selectedTreatments.contains(selected)) {
+                        selectedTreatments.add(selected);
+
+                        // Create a UI node for the selected treatment
+                        HBox treatmentItem = new HBox(10);
+                        Label treatmentLabel = new Label(selected.getTreatmentName());
+                        Button removeButton = new Button("Remove");
+
+                        removeButton.setOnAction(eve -> {
+                            selectedTreatmentsBox.getChildren().remove(treatmentItem);
+                            selectedTreatments.remove(selected);
+                        });
+
+                        treatmentItem.getChildren().addAll(treatmentLabel, removeButton);
+                        selectedTreatmentsBox.getChildren().add(treatmentItem);
+                    }
+                });
+                HBox tSelectorBox = new HBox(10, treatmentSelector, addTButton);
+                treatmentsBox.getChildren().addAll(new Label("Treatments"), selectedTreatmentsBox, tSelectorBox);
+
+                VBox prescriptionsBox = new VBox(10);
+                VBox selectedPrescriptionBox = new VBox(); // where selected treatments will be shown
+                ComboBox<Medicine> prescriptionSelector = new ComboBox<>();
+                prescriptionSelector.getItems().addAll(CareSyncDB.pullMedicinesFromDB()); // sample treatments
+                TextField quantity = new TextField();
+                quantity.setPrefWidth(USE_COMPUTED_SIZE);
+                quantity.setPromptText("Enter Quantity");
+                Button addPButton = new Button("Add Prescription");
+                Set<Medicine> selectedPrescriptions = new HashSet<>();
+                addPButton.setOnAction(ev -> {
+                    Medicine selected = prescriptionSelector.getValue();
+                    if (selected != null && !selectedPrescriptions.contains(selected))
+                    {
+                        selected.setQuantity(Integer.parseInt(quantity.getText()));
+                        selectedPrescriptions.add(selected);
+
+                        // Create a UI node for the selected treatment
+                        HBox prescriptionItem = new HBox(10);
+                        Label prescriptionLabel = new Label(selected.getMedicineName());
+                        Label prescriptionQuantity = new Label("q; " + selected.getQuantity());
+                        Button removeButton = new Button("Remove");
+
+                        removeButton.setOnAction(eve -> {
+                            selectedPrescriptionBox.getChildren().remove(prescriptionItem);
+                            selectedPrescriptions.remove(selected);
+                        });
+
+                        prescriptionItem.getChildren().addAll(prescriptionLabel, prescriptionQuantity, removeButton);
+                        selectedPrescriptionBox.getChildren().add(prescriptionItem);
+                    }
+                });
+                HBox pSelectorBox = new HBox(10, prescriptionSelector, quantity, addPButton);
+                prescriptionsBox.getChildren().addAll(new Label("Prescriptions"), selectedPrescriptionBox, pSelectorBox);
+
+                treatmentPrescriptionBox.getChildren().addAll(treatmentsBox, prescriptionsBox);
+
+                HBox actionsBox = new HBox(10);
+                Button confirmChanges = new Button("Complete Visit");
+                confirmChanges.setOnAction(ev -> {
+                    CareSyncDB.updateVisit(visit, symptoms.getText(), diagnosis.getText());
+                    CareSyncDB.updateTreatmentsForVisit(visit, selectedTreatments);
+                    CareSyncDB.updatePrescriptionsForVisit(visit, selectedPrescriptions);
+                    showVisitSummary(CareSyncDB.getVisitByID(visit.getRecordID()));
+                });
+                Button cancelButton = new Button("Cancel");
+                cancelButton.setOnAction(ev -> {
+                    showVisitSummary(visit);
+                });
+                actionsBox.getChildren().addAll(confirmChanges, cancelButton);
+
+                detailView.getChildren().addAll(treatmentPrescriptionBox, actionsBox);
+            });
         }
 
         if(AppGlobals.activeUser.getStaffRole().equals("admin"))

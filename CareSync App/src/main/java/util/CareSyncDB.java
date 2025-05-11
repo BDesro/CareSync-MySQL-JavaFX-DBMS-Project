@@ -6,6 +6,8 @@ import javafx.collections.ObservableList;
 
 import java.sql.*;
 import java.time.LocalDate;
+import java.util.Set;
+import java.util.StringJoiner;
 
 public class CareSyncDB
 {
@@ -287,6 +289,25 @@ public class CareSyncDB
         return dbVisits;
     }
 
+    public static void updateVisit(Visit visit, String symptoms, String diagnosis) {
+        String update = "UPDATE visit_records " +
+                        "SET symptoms = ?, diagnosis = ?, is_complete = TRUE, updated_at = NOW() " +
+                        "WHERE record_id = ?";
+
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(update))
+        {
+            stmt.setString(1, symptoms);
+            stmt.setString(2, diagnosis);
+            stmt.setInt(3, visit.getRecordID());
+
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+
     public static void deleteVisit(Visit visit)
     {
         String query = "DELETE FROM visit_records WHERE record_id = ?";
@@ -330,5 +351,126 @@ public class CareSyncDB
         }
 
         return invoice;
+    }
+
+    public static ObservableList<Treatment> pullTreatmentsFromDB()
+    {
+        ObservableList<Treatment> dbTreatments = FXCollections.observableArrayList();
+        String query = "SELECT * FROM treatments";
+
+        try(Connection conn = getConnection();
+            PreparedStatement stmt = conn.prepareStatement(query))
+        {
+            ResultSet rs = stmt.executeQuery();
+            while(rs.next())
+            {
+                int treatmentID = rs.getInt("treatment_id");
+                String treatmentName = rs.getString("treatment_name");
+
+                dbTreatments.add(new Treatment(treatmentID, treatmentName));
+            }
+        } catch(SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        return dbTreatments;
+    }
+
+    public static void deleteTreatmentsForVisit(Visit visit)
+    {
+        String query = "DELETE FROM record_treatments WHERE record_id = ?";
+
+        try(Connection conn = getConnection();
+            PreparedStatement stmt = conn.prepareStatement(query))
+        {
+            stmt.setInt(1, visit.getRecordID());
+            stmt.executeUpdate();
+        } catch(SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    public static void updateTreatmentsForVisit(Visit visit, Set<Treatment> treatments)
+    {
+        if(treatments.isEmpty())
+            return;
+
+        deleteTreatmentsForVisit(visit);
+
+        String update = "INSERT INTO record_treatments (record_id, treatment_id) VALUES (?, ?)";
+
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(update))
+        {
+            for (Treatment treatment : treatments) {
+                stmt.setInt(1, visit.getRecordID());
+                stmt.setInt(2, treatment.getTreatmentID());
+                stmt.addBatch();
+            }
+
+            stmt.executeBatch();
+        } catch(SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    public static ObservableList<Medicine> pullMedicinesFromDB()
+    {
+        ObservableList<Medicine> dbMedicines = FXCollections.observableArrayList();
+        String query = "SELECT * FROM medications";
+
+        try(Connection conn = getConnection();
+            PreparedStatement stmt = conn.prepareStatement(query))
+        {
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next())
+            {
+                int medicineID = rs.getInt("med_id");
+                String medicineName = rs.getString("med_name");
+
+                dbMedicines.add(new Medicine(medicineID, medicineName));
+            }
+        } catch(SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        return dbMedicines;
+    }
+
+    public static void deletePrescriptionsForVisit(Visit visit)
+    {
+        String query = "DELETE FROM record_prescriptions WHERE record_id = ?";
+
+        try(Connection conn = getConnection();
+            PreparedStatement stmt = conn.prepareStatement(query))
+        {
+            stmt.setInt(1, visit.getRecordID());
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    public static void updatePrescriptionsForVisit(Visit visit, Set<Medicine> medicines)
+    {
+        if(medicines.isEmpty())
+            return;
+
+        deletePrescriptionsForVisit(visit);
+
+        String update = "INSERT INTO record_prescriptions (record_id, med_id, quantity) VALUES (?, ?, ?)";
+
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(update))
+        {
+            for (Medicine medicine : medicines) {
+                stmt.setInt(1, visit.getRecordID());
+                stmt.setInt(2, medicine.getMedicineID());
+                stmt.setInt(3, medicine.getQuantity());
+                stmt.addBatch();
+            }
+
+            stmt.executeBatch();
+        } catch(SQLException e) {
+            System.out.println(e.getMessage());
+        }
     }
 }

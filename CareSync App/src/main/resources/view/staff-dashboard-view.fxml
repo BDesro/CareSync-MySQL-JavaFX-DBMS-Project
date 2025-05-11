@@ -9,7 +9,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane prefHeight="720.0" prefWidth="700.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.ReceptionistDashboardController">
+<AnchorPane prefHeight="720.0" prefWidth="700.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.StaffDashboardController">
    <children>
       <VBox alignment="TOP_CENTER" prefHeight="720.0" prefWidth="1280.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <children>
@@ -53,7 +53,7 @@
                         <Font size="36.0" />
                      </font>
                   </Button>
-                  <Button layoutX="10.0" layoutY="204.0" mnemonicParsing="false" prefWidth="700.0" style="-fx-background-color: #4DA6FF;" text="Clinic Info" VBox.vgrow="ALWAYS">
+                  <Button layoutX="10.0" layoutY="204.0" mnemonicParsing="false" onAction="#onClinicInfoClick" prefWidth="700.0" style="-fx-background-color: #4DA6FF;" text="Clinic Info" VBox.vgrow="ALWAYS">
                      <font>
                         <Font size="36.0" />
                      </font>

@@ -420,15 +420,8 @@ BEGIN
         INSERT INTO invoices (record_id, total_amount)
         VALUES (NEW.record_id, total_cost);
     END IF;
-END;
-//
-
+END //
 DELIMITER ;
-
-
-DROP TRIGGER IF EXISTS after_update_vr_complete;
-DELIMITER //
-CREATE TRIGGER after_update_vr_complete
 
 -- Procedure to add a new prescription to the record_prescriptions table
 DROP PROCEDURE IF EXISTS addPrescription;
